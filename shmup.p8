@@ -1,7 +1,8 @@
 pico-8 cartridge // http://www.pico-8.com
 version 38
 __lua__
--- current episode: 6 
+-- shmup
+-- current episode: 8
 
 function _init()
 	shipx=64
@@ -21,17 +22,30 @@ function _init()
 
 	lives=4
 	score=30000
+	
+	starx={}
+	stary={}
+	stars={}
+	
+	for i=1,100 do
+		add(starx, rnd(128))
+		add(stary, rnd(128))
+		add(stars, rnd(1.5)+0.5)
+	end
 end
 
 function _draw()
 	cls(0)
+	
+	starfield()
+	
 	spr(shipspr,shipx,shipy)
 	spr(flamespr,shipx,shipy+8)
 	
 	spr(16,bulx,buly)
 
 	if muzzle>0 then	
-		circfill(shipx+4,shipy-3,muzzle,7)
+		circfill(shipx+4,shipy-1,muzzle,7)
 	end
 
 	print("score: "..score,50,1,12)
@@ -95,6 +109,38 @@ function _update()
 	end
 	if shipy<0 then
 		shipy=120
+	end
+	
+	animatestars()
+end
+-->8
+-- starfield
+function starfield()
+	for i=1,#starx do
+		local col=6
+		
+		-- custom change: move stars with ship position
+		local dx=(64-shipx)/7
+		
+		if stars[i]<1.5 then
+			col=13
+			dx=dx/1.5
+		elseif stars[i]<1 then
+			col=1
+			dx=dx/2
+		end
+		
+		pset(starx[i]+dx,stary[i],col)
+	end
+end
+
+function animatestars()
+	for i=1,#starx do
+		stary[i]=stary[i]+stars[i]
+		if stary[i]>128 then
+			stary[i]=0
+			starx[i]=rnd(128)
+		end
 	end
 end
 __gfx__
