@@ -2,27 +2,11 @@ pico-8 cartridge // http://www.pico-8.com
 version 38
 __lua__
 -- shmup
--- current episode: 8
+-- current episode: 9
 
 function _init()
-	shipx=64
-	shipy=64
-	
-	shipsx=0
-	shipsy=0
-	
-	shipspr=2
-	
-	flamespr=5
-	
-	bulx=0
-	buly=0
+	blinkt=1
 
-	muzzle=0
-
-	lives=4
-	score=30000
-	
 	starx={}
 	stary={}
 	stars={}
@@ -32,34 +16,111 @@ function _init()
 		add(stary, rnd(128))
 		add(stars, rnd(1.5)+0.5)
 	end
+	
+	mode="start"
+end
+
+function _update()
+	blinkt+=0.2
+	if mode=="game" then
+		update_game()
+	elseif mode=="start" then
+		update_start()
+	elseif mode=="gameover" then
+		update_gameover()
+	end
 end
 
 function _draw()
-	cls(0)
-	
-	starfield()
-	
-	spr(shipspr,shipx,shipy)
-	spr(flamespr,shipx,shipy+8)
-	
-	spr(16,bulx,buly)
-
-	if muzzle>0 then	
-		circfill(shipx+4,shipy-1,muzzle,7)
+	if mode=="game" then
+		draw_game()
+	elseif mode=="start" then
+		draw_start()
+	elseif mode=="gameover" then
+		draw_gameover()
 	end
+end
 
-	print("score: "..score,50,1,12)
+function startgame()
+	shipx=62
+	shipy=110
 	
-	for i=1,4 do
-		if lives>=i then
-			spr(13,(i-1)*9,1)
-		else
-			spr(14,(i-1)*9,1)
+	shipsx=0
+	shipsy=0
+	
+	shipspr=2
+	
+	flamespr=5
+	
+	bulx=-10
+	buly=-10
+
+	muzzle=0
+
+	lives=1
+	score=30000
+	
+	mode="game"
+end
+-->8
+--tools
+function starfield()
+	for i=1,#starx do
+		local col=6
+		local dx=0
+		
+		-- custom change: move stars with ship position
+		if shipx~=nil then
+			local dx=(64-shipx)/7
+		end
+		
+		if stars[i]<1 then
+			col=1
+			dx=dx/1.5
+		elseif stars[i]<1.5 then
+			col=13
+			dx=dx/2
+		end
+		
+		pset(starx[i]+dx,stary[i],col)
+	end
+end
+
+function animatestars()
+	for i=1,#starx do
+		stary[i]=stary[i]+stars[i]
+		if stary[i]>128 then
+			stary[i]=0
+			starx[i]=rnd(128)
 		end
 	end
 end
 
-function _update()
+function blink()
+	local cols={5,6,7,6}
+	if blinkt>#cols then
+		blinkt=1
+	end
+	return cols[flr(blinkt)]
+end
+-->8
+--update
+
+function update_start()
+	if btnp(🅾️) or btnp(❎) then
+		startgame()
+	end
+	animatestars()
+end
+
+function update_gameover()
+	if btnp(🅾️) or btnp(❎) then
+		startgame()
+	end
+	animatestars()
+end
+
+function update_game()
 	shipsx=0
 	shipsy=0
 	shipspr=2
@@ -114,32 +175,47 @@ function _update()
 	animatestars()
 end
 -->8
--- starfield
-function starfield()
-	for i=1,#starx do
-		local col=6
-		
-		-- custom change: move stars with ship position
-		local dx=(64-shipx)/7
-		
-		if stars[i]<1.5 then
-			col=13
-			dx=dx/1.5
-		elseif stars[i]<1 then
-			col=1
-			dx=dx/2
-		end
-		
-		pset(starx[i]+dx,stary[i],col)
-	end
+--draw
+
+function draw_start()
+	cls(0)
+	
+	starfield()
+	
+	print("shmup",52,40,12)
+	print("press ❎ or 🅾️ to start",18,80,blink())
 end
 
-function animatestars()
-	for i=1,#starx do
-		stary[i]=stary[i]+stars[i]
-		if stary[i]>128 then
-			stary[i]=0
-			starx[i]=rnd(128)
+function draw_gameover()
+	cls(0)
+	
+	starfield()
+	
+	print("game over",45,40,8)
+	print("press ❎ or 🅾️ to restart",17,80,blink())
+end
+
+function draw_game()
+	cls(0)
+	
+	starfield()
+	
+	spr(shipspr,shipx,shipy)
+	spr(flamespr,shipx,shipy+8)
+	
+	spr(16,bulx,buly)
+
+	if muzzle>0 then	
+		circfill(shipx+4,shipy-1,muzzle,7)
+	end
+
+	print("score: "..score,50,1,12)
+	
+	for i=1,4 do
+		if lives>=i then
+			spr(13,(i-1)*9,1)
+		else
+			spr(14,(i-1)*9,1)
 		end
 	end
 end
