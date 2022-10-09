@@ -2,19 +2,20 @@ pico-8 cartridge // http://www.pico-8.com
 version 38
 __lua__
 -- shmup
--- current episode: 9
+-- current episode: 10
 
 function _init()
 	blinkt=1
 
-	starx={}
-	stary={}
 	stars={}
+	bullets={}
 	
 	for i=1,100 do
-		add(starx, rnd(128))
-		add(stary, rnd(128))
-		add(stars, rnd(1.5)+0.5)
+		add(stars, {
+			x=rnd(128),
+			y=rnd(128),
+			s=rnd(1.5)+0.5,
+		})
 	end
 	
 	mode="start"
@@ -65,33 +66,35 @@ end
 -->8
 --tools
 function starfield()
-	for i=1,#starx do
+	for i=1,#stars do
+		local star=stars[i]
 		local col=6
 		local dx=0
 		
 		-- custom change: move stars with ship position
 		if shipx~=nil then
-			local dx=(64-shipx)/7
+			local dx=(64-star.x)/7
 		end
 		
-		if stars[i]<1 then
+		if star.s<1 then
 			col=1
 			dx=dx/1.5
-		elseif stars[i]<1.5 then
+		elseif star.s<1.5 then
 			col=13
 			dx=dx/2
 		end
 		
-		pset(starx[i]+dx,stary[i],col)
+		pset(star.x+dx,star.y,col)
 	end
 end
 
 function animatestars()
-	for i=1,#starx do
-		stary[i]=stary[i]+stars[i]
-		if stary[i]>128 then
-			stary[i]=0
-			starx[i]=rnd(128)
+	for i=1,#stars do
+		local star=stars[i]
+		star.y=star.y+star.s
+		if star.y>128 then
+			star.y=0
+			star.x=rnd(128)
 		end
 	end
 end
@@ -139,8 +142,10 @@ function update_game()
 		shipsy=2
 	end
 	if btnp(❎) then
-		buly=shipy-3
-		bulx=shipx
+		add(bullets,{
+			x=shipx,
+			y=shipy-3,
+		})
 		muzzle=5
 		sfx(0)
 	end
@@ -153,7 +158,17 @@ function update_game()
 		flamespr=5
 	end
 	
-	buly=buly-4
+	for i=1,#bullets do
+		local bullet=bullets[i]
+		bullet.y-=4
+	end
+	
+	for i=#bullets,1,-1 do
+		local bullet=bullets[i]
+		if bullet.y<0 then
+			del(bullets,bullet)
+		end
+	end
 	
 	if muzzle>0 then
 		muzzle=muzzle-2
@@ -203,7 +218,10 @@ function draw_game()
 	spr(shipspr,shipx,shipy)
 	spr(flamespr,shipx,shipy+8)
 	
-	spr(16,bulx,buly)
+	for i=1,#bullets do
+		local bullet=bullets[i]
+		spr(16,bullet.x,bullet.y)
+	end
 
 	if muzzle>0 then	
 		circfill(shipx+4,shipy-1,muzzle,7)
