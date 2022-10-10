@@ -2,7 +2,7 @@ pico-8 cartridge // http://www.pico-8.com
 version 38
 __lua__
 -- shmup
--- current episode: 11
+-- current episode: 12
 
 function _init()
 	blinkt=1
@@ -54,7 +54,7 @@ function startgame()
 
 	muzzle=0
 
-	lives=1
+	lives=4
 	score=30000
 	
 	bullets={}
@@ -114,6 +114,19 @@ end
 
 function drawsprt(sprt)
 	spr(sprt.sprt,sprt.x,sprt.y)
+end
+
+function col(a,b)
+	if 
+		(a.x>b.x+7)
+		or (a.x+7<b.x)
+		or (a.y>b.y+7)
+		or (a.y+7<b.y)
+	then 
+		return false 
+	end
+	 
+	return true
 end
 -->8
 --update
@@ -176,6 +189,23 @@ function update_game()
 		end
 	end
 	
+	for enemy in all(enemies) do
+		if col(enemy,ship) then
+			lives-=1
+			sfx(1)
+			del(enemies,enemy)
+		end
+	end
+	
+	for enemy in all(enemies) do
+		for bullet in all(bullets) do
+			if col(enemy,bullet) then
+				sfx(1)
+				del(enemies,enemy)
+			end
+		end
+	end
+	
 	for bullet in all(bullets) do
 		bullet.y-=4
 	end
@@ -202,6 +232,10 @@ function update_game()
 	end
 	if ship.y<0 then
 		ship.y=0
+	end
+	
+	if lives<=0 then
+		mode="gameover"
 	end
 	
 	animatestars()
@@ -276,3 +310,4 @@ __gfx__
 00999900000000000000000000000000000000000300003030000003030000300330033000000000000000000000000000000000000000000000000000000000
 __sfx__
 00010000300502b050230501e05000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00050000276501f650146501265010650086500165000650116000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
