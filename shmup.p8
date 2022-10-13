@@ -2,10 +2,11 @@ pico-8 cartridge // http://www.pico-8.com
 version 38
 __lua__
 -- shmup
--- current episode: 12
+-- current episode: 13
 
 function _init()
 	blinkt=1
+	t=0
 
 	stars={}
 	
@@ -21,6 +22,7 @@ function _init()
 end
 
 function _update()
+	t+=1
 	blinkt+=0.2
 	if mode=="game" then
 		update_game()
@@ -50,21 +52,21 @@ function startgame()
 		sprt=2,
 	}
 	
+	t=0
+	bultimer=0
+	
 	flamespr=5
 
 	muzzle=0
 
 	lives=4
-	score=30000
+	invul=0
+	score=0
 	
 	bullets={}
 	enemies={}
 	
-	add(enemies,{
-		x=60,
-		y=60,
-		sprt=21
-	})
+	spawnenemy()
 	
 	mode="game"
 end
@@ -128,6 +130,14 @@ function col(a,b)
 	 
 	return true
 end
+
+function spawnenemy()
+	add(enemies,{
+		x=rnd(120),
+		y=-8,
+		sprt=21
+	})
+end
 -->8
 --update
 
@@ -163,15 +173,19 @@ function update_game()
 	if btn(⬇️) then
 		ship.sy=2
 	end
-	if btnp(❎) then
-		add(bullets,{
-			x=ship.x,
-			y=ship.y-3,
-			sprt=16,
-		})
-		muzzle=5
-		sfx(0)
+	if btn(❎) then
+		if bultimer<=0 then
+			add(bullets,{
+				x=ship.x,
+				y=ship.y-3,
+				sprt=16,
+			})
+			muzzle=5
+			sfx(0)
+			bultimer=3
+		end
 	end
+	bultimer-=1
 	
 	ship.x+=ship.sx
 	ship.y+=ship.sy
@@ -182,26 +196,37 @@ function update_game()
 	end
 	
 	for enemy in all(enemies) do
-		enemy.y+=0.1
+		enemy.y+=0.5
 		enemy.sprt+=0.2
 		if enemy.sprt>25 then
 			enemy.sprt=21
 		end
+		if enemy.y>128 then
+			del(enemies,enemy)
+			spawnenemy()
+		end
 	end
 	
-	for enemy in all(enemies) do
-		if col(enemy,ship) then
-			lives-=1
-			sfx(1)
-			del(enemies,enemy)
+	if invul<=0 then
+		for enemy in all(enemies) do
+			if col(enemy,ship) then
+				lives-=1
+				sfx(1)
+				invul=60
+			end
 		end
+	else
+		invul-=1
 	end
 	
 	for enemy in all(enemies) do
 		for bullet in all(bullets) do
 			if col(enemy,bullet) then
-				sfx(1)
+				sfx(2)
 				del(enemies,enemy)
+				del(bullets,bullet)
+				score+=1
+				spawnenemy()
 			end
 		end
 	end
@@ -266,8 +291,15 @@ function draw_game()
 	
 	starfield()
 	
-	drawsprt(ship)
-	spr(flamespr,ship.x,ship.y+8)
+	if invul<=0 then
+		drawsprt(ship)
+		spr(flamespr,ship.x,ship.y+8)
+	else
+		if sin(t/3)<0 then
+			drawsprt(ship)
+			spr(flamespr,ship.x,ship.y+8)
+		end
+	end
 	
 	for enemy in all(enemies) do
 		drawsprt(enemy)
@@ -311,3 +343,4 @@ __gfx__
 __sfx__
 00010000300502b050230501e05000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00050000276501f650146501265010650086500165000650116000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000e000016630126500e6500a65006640046300362001610006100061001600016000060000600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
