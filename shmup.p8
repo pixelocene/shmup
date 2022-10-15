@@ -2,7 +2,7 @@ pico-8 cartridge // http://www.pico-8.com
 version 38
 __lua__
 -- shmup
--- current episode: 14
+-- current episode: 15
 
 function _init()
 	blinkt=1
@@ -65,7 +65,7 @@ function startgame()
 	
 	bullets={}
 	enemies={}
-	explods={}
+	parts={}
 	
 	spawnenemy()
 	
@@ -143,11 +143,29 @@ function spawnenemy()
 end
 
 function explode(x,y)
-	add(explods,{
+ -- central halo
+	add(parts,{
 		x=x,
 		y=y,
-		age=1
+		sx=0,
+		sy=0,
+		age=0,
+		size=5,
+		ttl=0
 	})
+ -- particles
+	for i=1,40 do
+		local ang=rnd(360)
+		add(parts,{
+			x=x,
+			y=y,
+			sx=sin(ang)*1.5,
+			sy=cos(ang)*1.5,
+			age=0,
+			size=1+rnd(4),
+			ttl=rnd(30)
+		})
+	end
 end
 -->8
 --update
@@ -317,19 +335,25 @@ function draw_game()
 			spr(flamespr,ship.x,ship.y+8)
 		end
 	end
-	
-	for explosion in all(explods) do
-		local frames={64,66,66,68,68,68,70,70,70,70,72,72,72,72,72,72}
-		spr(
-			frames[explosion.age],
-			explosion.x-8,
-			explosion.y-8,
-			2,
-			2
-		)
-		explosion.age+=1
-		if explosion.age>#frames then
-			del(explods,explosion)
+
+	for part in all(parts) do
+		local c=7
+		if part.age>5 then c=10 end
+		if part.age>7 then c=9 end
+		if part.age>9 then c=8 end
+		if part.age>11 then c=2 end
+		if part.age>13 then c=5 end
+		part.x+=part.sx
+		part.y+=part.sy
+		part.sx*=0.9
+		part.sy*=0.9
+		part.age+=rnd(2)
+		circfill(part.x,part.y,part.size,c)
+		if part.age>part.ttl then
+			part.size-=0.5
+			if part.size<=0 then
+				del(parts,part)
+			end
 		end
 	end
 	
