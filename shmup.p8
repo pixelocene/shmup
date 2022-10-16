@@ -2,7 +2,7 @@ pico-8 cartridge // http://www.pico-8.com
 version 38
 __lua__
 -- shmup
--- current episode: 15
+-- current episode: 16
 
 function _init()
 	blinkt=1
@@ -66,6 +66,7 @@ function startgame()
 	bullets={}
 	enemies={}
 	parts={}
+	shwaves={}
 	
 	spawnenemy()
 	
@@ -142,7 +143,31 @@ function spawnenemy()
 	})
 end
 
-function explode(x,y)
+function spawnshwave(x,y,isenemy)
+	isenemy=isenemy or false
+	if isenemy then
+		add(shwaves,{
+			x=x,
+			y=y,
+			r=3,
+			tr=25,
+			c=7,
+			s=4
+		})
+	else
+		add(shwaves,{
+			x=x,
+			y=y,
+			r=3,
+			tr=6,
+			c=9,
+			s=2
+		})
+	end
+end
+
+function explode(x,y,ship)
+	ship=ship or false
  -- central halo
 	add(parts,{
 		x=x,
@@ -151,7 +176,8 @@ function explode(x,y)
 		sy=0,
 		age=0,
 		size=5,
-		ttl=0
+		ttl=0,
+		blue=ship
 	})
  -- particles
 	for i=1,40 do
@@ -163,8 +189,58 @@ function explode(x,y)
 			sy=cos(ang)*1.5,
 			age=0,
 			size=1+rnd(4),
-			ttl=rnd(30)
+			ttl=rnd(30),
+			blue=ship,
+			spark=false
 		})
+	end
+	spawnsparks(x,y,ship)
+end
+
+function spawnsparks(x,y,ship)
+	for i=1,30 do
+		local ang=rnd(360)
+		add(parts,{
+			x=x,
+			y=y,
+			sx=(rnd()-0.5)*10,
+			sy=(rnd()-0.5)*10,
+			age=0,
+			size=1+rnd(4),
+			ttl=rnd(30),
+			blue=ship,
+			spark=true
+		})
+	end
+end
+
+function col4age(age,blue)
+	if blue then
+		if age>13 then
+			return 5
+		elseif age>11 then
+			return 1
+		elseif age>9 then
+			return 13
+		elseif age>7 then
+			return 12
+		elseif age>5 then 
+			return 6
+		end
+		return 12
+	else
+		if age>13 then
+			return 5
+		elseif age>11 then
+			return 2
+		elseif age>9 then
+			return 8
+		elseif age>7 then
+			return 9
+		elseif age>5 then 
+			return 10
+		end
+		return 7
 	end
 end
 -->8
@@ -239,6 +315,7 @@ function update_game()
 	if invul<=0 then
 		for enemy in all(enemies) do
 			if col(enemy,ship) then
+				explode(ship.x+4,ship.y+4,true)
 				lives-=1
 				sfx(1)
 				invul=60
@@ -254,11 +331,13 @@ function update_game()
 				sfx(3)
 				enemy.hp-=1
 				enemy.flash=2
+				spawnshwave(bullet.x+4,bullet.y+4)
 				del(bullets,bullet)
 				if enemy.hp<=0 then
 					sfx(2)
 					score+=1
 					explode(enemy.x+4,enemy.y+4)
+					spawnshwave(enemy.x+4,enemy.y+4,true)
 					del(enemies,enemy)
 					spawnenemy()
 				end
@@ -337,18 +416,22 @@ function draw_game()
 	end
 
 	for part in all(parts) do
-		local c=7
-		if part.age>5 then c=10 end
-		if part.age>7 then c=9 end
-		if part.age>9 then c=8 end
-		if part.age>11 then c=2 end
-		if part.age>13 then c=5 end
 		part.x+=part.sx
 		part.y+=part.sy
 		part.sx*=0.9
 		part.sy*=0.9
 		part.age+=rnd(2)
-		circfill(part.x,part.y,part.size,c)
+		
+		if part.spark then
+			pset(part.x,part.y,7)
+		else
+			circfill(
+				part.x,
+				part.y,
+				part.size,
+				col4age(part.age,part.blue)
+			)
+		end
 		if part.age>part.ttl then
 			part.size-=0.5
 			if part.size<=0 then
@@ -374,6 +457,14 @@ function draw_game()
 
 	if muzzle>0 then	
 		circfill(ship.x+4,ship.y-1,muzzle,7)
+	end
+
+	for shwave in all(shwaves) do
+		circ(shwave.x,shwave.y,shwave.r,shwave.c)
+		shwave.r+=shwave.s
+		if shwave.r>shwave.tr then
+			del(shwaves,shwave)
+		end
 	end
 
 	print("score: "..score,50,1,12)
